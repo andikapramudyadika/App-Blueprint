@@ -15,7 +15,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Buka alamat lokal yang dicetak Vite. Akses repositori memerlukan akun GitHub pemilik atau kolaborator karena repositori bersifat privat.
+Buka alamat lokal yang dicetak Vite.
 
 ```sh
 pnpm typecheck
@@ -25,6 +25,16 @@ pnpm preview
 ```
 
 Build produksi berada di `dist/`. Aplikasi dapat ditempatkan pada hosting statis HTTPS; `base: './'` mendukung subfolder. Untuk pengembangan lokal, HTTP localhost juga mendukung service worker. Mode offline PWA tersedia pada **build produksi**, setelah service worker dan aset selesai disimpan.
+
+## Mengakses melalui GitHub Pages
+
+Alamat aplikasi: **https://andikapramudyadika.github.io/App-Blueprint/**.
+
+Pada **Settings → Pages → Build and deployment → Source**, gunakan **GitHub Actions**. Workflow `Deploy GitHub Pages` membangun aplikasi menggunakan `pnpm build --base=/App-Blueprint/`, memeriksa aset, kemudian menerbitkan **isi folder `dist`**. Push ke `main` memicu pembaruan; deployment juga dapat dijalankan manual melalui tab Actions.
+
+Jangan menerbitkan root kode sumber menggunakan “Deploy from a branch”: `index.html` pada root adalah entry point pengembangan yang memerlukan Vite, sehingga bukan berkas yang bisa langsung dijalankan oleh GitHub Pages. Panduan: [deployment Vite ke GitHub Pages](https://vite.dev/guide/static-deploy#github-pages).
+
+Data proyek tetap berada di browser perangkat yang sedang dipakai. Untuk memindahkan data dari localhost ke situs Pages atau ke perangkat lain, gunakan backup/impor JSON.
 
 ## Fitur
 

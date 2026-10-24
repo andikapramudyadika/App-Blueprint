@@ -46,3 +46,10 @@ Screenshot: [desktop](docs/desktop.png), [ponsel](docs/mobile.png).
 - Akses clipboard otomatis pada browser pengujian tidak dapat diverifikasi. Aplikasi menangani kegagalan clipboard dengan pesan dan menyediakan unduhan prompt sebagai alternatif.
 - Kondisi kuota disk penuh tidak dipaksakan pada browser pengguna. Kegagalan penulisan dan pemulihan antrean diuji dengan writer yang sengaja gagal.
 - Workflow GitHub CI disertakan; hasil CI jarak jauh terpisah dari hasil lokal ini.
+
+## Perbaikan deployment GitHub Pages
+
+- Diagnosis: halaman publik menyajikan `index.html` pengembangan dari root repositori. Skrip `/src/main.tsx` menghasilkan HTTP 404 sehingga aplikasi tidak dirender.
+- Source Pages diubah dari “Deploy from a branch” menjadi “GitHub Actions”. Workflow `Deploy GitHub Pages` memverifikasi kode, membangun dengan base `/App-Blueprint/`, dan mengunggah folder `dist`.
+- Build khusus Pages berhasil, termasuk service worker dan manifest. Pemeriksaan `scripts/check-pages-build.mjs` memverifikasi entry point produksi, 9 referensi aset di subpath yang benar, dan aset PWA wajib. Sebanyak 31 pengujian tetap lulus.
+- Hasil deployment publik dapat diperiksa pada tab Actions, workflow `Deploy GitHub Pages`.
