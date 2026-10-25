@@ -53,3 +53,13 @@ Screenshot: [desktop](docs/desktop.png), [ponsel](docs/mobile.png).
 - Source Pages diubah dari “Deploy from a branch” menjadi “GitHub Actions”. Workflow `Deploy GitHub Pages` memverifikasi kode, membangun dengan base `/App-Blueprint/`, dan mengunggah folder `dist`.
 - Build khusus Pages berhasil, termasuk service worker dan manifest. Pemeriksaan `scripts/check-pages-build.mjs` memverifikasi entry point produksi, 9 referensi aset di subpath yang benar, dan aset PWA wajib. Sebanyak 31 pengujian tetap lulus.
 - Hasil deployment publik dapat diperiksa pada tab Actions, workflow `Deploy GitHub Pages`.
+
+## Mode Terpandu & OpenRouter
+
+- TypeScript lulus; **60 dari 60 pengujian lulus** (31 pengujian awal dan 29 pengujian tambahan).
+- Pengujian tambahan mencakup kompatibilitas backup lama, pemetaan ke editor yang sama, acuan awal, penerapan pilihan sebagai draf, validasi field/opsi, larangan perubahan ID/checklist, duplikasi ID pertanyaan, ekspor metadata panduan, redaksi key yang salah ditempel ke konteks, serta penolakan respons kedaluwarsa.
+- Transport OpenRouter diuji dengan fetch tiruan: header kredensial pada endpoint tetap, Structured Outputs, pembatasan provider, tidak ada persistensi/serialisasi key, error 401/402/429/503 yang tidak membocorkan isi respons, timeout tanpa retry, pemutusan koneksi, pembatalan, dan invalidasi respons terlambat. Key dicabut (401/403) menghapus koneksi sesi.
+- Pemeriksaan browser pada aplikasi sebenarnya: proyek manual, penyimpanan acuan, penambahan fitur, perpindahan Mode Terpandu ↔ Editor Lanjutan, autosave, serta reload dan pemulihan tahap/isian berhasil.
+- Harness lokal memakai komponen produksi dengan transport tiruan: usulan tidak mengubah proyek sebelum diterapkan; penerapan terpilih, undo, pertanyaan kontekstual dan penerapan jawaban, tinjauan konflik acuan, pembatalan, penolakan field ilegal, dan respons lama setelah edit berhasil. Reload menghapus koneksi sesi.
+- Pada viewport **360 × 800**, keenam langkah, panel AI, dan dialog pengaturan tidak memiliki overflow horizontal. Screenshot: [ponsel](docs/guided-mobile.png), [desktop](docs/guided-desktop.png).
+- API key berbayar tidak disediakan selama verifikasi. Tidak ada klaim keberhasilan inferensi pada provider berbayar; alur respons AI diuji dengan transport tiruan. Ketersediaan model/provider dan kebijakan akun dapat memengaruhi panggilan sebenarnya.

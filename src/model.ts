@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { guidedSchema } from './guided-schema'
 
 export type Field = { key: string; label: string; hint?: string; placeholder?: string; options?: string[]; short?: boolean; ref?: 'features' | 'plan'; number?: boolean }
 export const sections = [
@@ -58,6 +59,7 @@ export const projectSchema = z.object({
   schemaVersion: z.literal(1), id: z.string().min(1).max(200), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
   name: z.string().min(1).max(200), description: str, status: z.enum(['Draf', 'Disepakati', 'Arsip']), example: z.boolean(),
   version: z.string().max(100), changeSummary: str,
+  guided: guidedSchema.optional(),
   summary: data, design: data, dataSettings: data,
   sectionStatus: z.object({ summary: stage, features: stage, flows: stage, screens: stage, design: stage, motion: stage, data: stage, plan: stage, acceptance: stage, decisions: stage }),
   lists: z.object(Object.fromEntries(listKeys.map(k => [k, z.array(itemSchema).max(1000)])) as Record<ListKey, z.ZodArray<typeof itemSchema>>),
@@ -85,6 +87,7 @@ export function duplicateProject(source: Project, suffix = ' (salinan)'): Projec
     item.children.forEach(child => { child.id = ids.get(child.id)!; for (const [ref, values] of Object.entries(child.links)) child.links[ref] = values.map(id => ids.get(id) ?? id) })
   }
   p.id = uid(); p.name = (p.name + suffix).slice(0, 200); p.summary.name = p.name; p.createdAt = p.updatedAt = new Date().toISOString(); p.example = false
+  p.guided?.questions.forEach(q => { q.id = uid() })
   return p
 }
 export const backupSchema = z.object({ schemaVersion: z.literal(1), exportedAt: z.iso.datetime(), projects: z.array(projectSchema).min(1).max(500) })

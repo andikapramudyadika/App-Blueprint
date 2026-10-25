@@ -11,7 +11,7 @@ export function checks(p: Project) {
     { ok: !!p.design.responsive?.trim(), section: 'design', message: 'Pedoman responsif belum ditentukan.' },
     { ok: p.lists.motion.length > 0 && p.lists.motion.every(m => !!m.data.reduced?.trim()), section: 'motion', message: 'Setiap aturan animasi memerlukan perilaku reduced motion.' },
     { ok: p.lists.features.every(f => (f.links.dependencies ?? []).every(id => id !== f.id && p.lists.features.some(x => x.id === id))), section: 'features', message: 'Ada dependensi fitur yang tidak valid atau mengacu pada diri sendiri.' },
-    { ok: !p.lists.questions.some(q => q.data.status !== 'Terselesaikan'), section: 'decisions', message: 'Masih ada pertanyaan yang belum terjawab.' },
+    { ok: !p.lists.questions.some(q => q.data.status !== 'Terselesaikan') && !(p.guided?.questions || []).some(q => !q.resolved), section: 'decisions', message: 'Masih ada pertanyaan yang belum terjawab (termasuk Mode Terpandu).' },
   ]
   const findings: Finding[] = rules.filter(r => !r.ok).map(r => ({ section: r.section, message: r.message }))
   for (const [key, list] of Object.entries(p.lists)) for (const item of list) for (const [ref, ids] of Object.entries(item.links)) {

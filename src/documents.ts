@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { backup, childFields, dataFields, designFields, itemFields, summaryFields } from './model'
 import type { Field, Item, ListKey, Project } from './model'
+import { guidedFields } from './guided'
 
 // User content is fenced as literal text. A dynamic fence preserves arbitrary Markdown,
 // HTML, tables and code fences without turning them into document instructions.
@@ -14,8 +15,8 @@ export function safeName(name: string) {
   const clean = name.normalize('NFKC').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').replace(/[^\p{L}\p{N}._ -]/gu, '').replace(/[. ]+$/g, '').trim().slice(0, 80) || 'proyek'
   return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i.test(clean) ? `proyek-${clean}` : clean
 }
-function fields(data: Record<string, string>, definitions: Field[], level = 3): string {
-  return definitions.map(f => `${'#'.repeat(level)} ${f.label}\n\n${literal(data[f.key])}`).join('\n')
+function fields(data: Record<string, string | string[]>, definitions: Field[], level = 3): string {
+  return definitions.map(f => { const value = data[f.key]; return `${'#'.repeat(level)} ${f.label}\n\n${literal(Array.isArray(value) ? value.join('\n') : value)}` }).join('\n')
 }
 function resolve(p: Project, item: Item, key: ListKey, f: Field) {
   const target = f.ref === 'plan' ? p.lists.plan : p.lists.features
@@ -47,7 +48,8 @@ export function documents(p: Project): Record<string, string> {
   const constraints = `## Batasan teknis\n\n${literal(p.summary.constraints)}`
   const plan = `## Tahapan implementasi\n\n${items(p, 'plan')}`
   const acceptance = `## Kriteria penerimaan\n\nChecklist berikut merupakan spesifikasi untuk aplikasi yang akan dibangun. Status verifikasi hanya berubah bila ditandai pengguna.\n\n${items(p, 'acceptance')}`
-  const decisions = `## Keputusan\n\n${items(p, 'decisions')}\n## Pertanyaan terbuka\n\n${items(p, 'questions')}\n## Ringkasan perubahan\n\n${literal(p.changeSummary)}`
+  const guided = p.guided ? `## Catatan Mode Terpandu\n\n${fields(p.guided.answers, guidedFields)}\n### Acuan awal\n\n${p.guided.anchor ? fields(p.guided.anchor, summaryFields.filter(f => ['description', 'goal', 'audience', 'outOfScope', 'constraints'].includes(f.key))) + '\n#### Fitur MVP pada acuan\n\n' + literal(p.guided.anchor.features.join('\n')) : 'Belum ditentukan\n'}\n### Tanya jawab lanjutan\n\n${p.guided.questions.map((q, i) => `#### Pertanyaan ${i + 1}\n\n${literal(q.question)}\n${literal(q.answer)}\nStatus: ${q.resolved ? 'Jawaban digunakan oleh pengguna' : 'Belum diputuskan'}\n`).join('\n') || 'Belum ditentukan\n'}` : ''
+  const decisions = `## Keputusan\n\n${items(p, 'decisions')}\n## Pertanyaan terbuka\n\n${items(p, 'questions')}\n${guided}\n## Ringkasan perubahan\n\n${literal(p.changeSummary)}`
   const intro = `${title}\n## Petunjuk untuk AI pelaksana\n\n${aiInstructions}\n`
   return {
     'README.md': '# Paket App Blueprint\n\nBaca APP_SPEC.md terlebih dahulu: dokumen ini menggabungkan seluruh keputusan. File lain adalah potongan dari sumber data yang sama. Lampirkan APP_SPEC.md ke Codex atau AI pembuat aplikasi, lalu berikan prompt implementasi.\n\nUrutan baca: PRD.md → UI_SPEC.md → MOTION_SPEC.md → DATA_MODEL.md → IMPLEMENTATION_PLAN.md → ACCEPTANCE_CRITERIA.md.\n\nPROJECT_BACKUP.json dapat diimpor kembali melalui App Blueprint. Simpan backup secara berkala karena data aplikasi berada di browser perangkat ini.\n\nBagian kosong ditandai Belum ditentukan. Status Disepakati berbeda dari kelengkapan. Jangan menganggap checklist sudah lolos tanpa verifikasi.\n',

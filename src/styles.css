@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source("./");
 
 :root{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#293c38;background:#f7f8fa;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;--bg:#f7f8fa;--surface:#fff;--soft:#f2f5f4;--text:#293c38;--muted:#65746e;--border:#e5eae7;--teal:#167867;--teal-dark:#115e51;--tint:#eaf4ef;--shadow:0 4px 20px #203d3010;--danger:#b54747}
 :root[data-theme=dark]{color-scheme:dark;--bg:#141b1e;--surface:#1b2427;--soft:#222f31;--text:#e2ebe7;--muted:#a0b2aa;--border:#334241;--teal:#7bd3bb;--teal-dark:#a2e6d2;--tint:#243e38;--shadow:0 4px 20px #0002;--danger:#ffaaaa}

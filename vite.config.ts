@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: './',
+  optimizeDeps: { entries: ['index.html'] },
   build: { rollupOptions: { output: { manualChunks: { markdown: ['react-markdown', 'remark-gfm'], motion: ['motion/react'], export: ['jszip'], validation: ['zod'], storage: ['dexie'] } } } },
   plugins: [react(), tailwindcss(), VitePWA({
     registerType: 'prompt',
