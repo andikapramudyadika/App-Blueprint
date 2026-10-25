@@ -72,7 +72,7 @@ describe('OpenRouter session transport', () => {
     const p = newProject(); const before = backup([p]); const result = await session.request({ project: p, step: 0, model: 'google/gemini-2.5-flash-lite', instruction: 'Rapikan', zeroRetention: true })
     const [url, init] = fetcher.mock.calls[1]; const body = JSON.parse(init.body)
     expect(url).toBe('https://openrouter.ai/api/v1/chat/completions'); expect(init.headers.Authorization).toBe(`Bearer ${key}`); expect(init.body).not.toContain(key)
-    expect(body.response_format.json_schema.strict).toBe(true); expect(body.response_format.json_schema.schema.additionalProperties).toBe(false); expect(body.provider).toEqual({ require_parameters: true, data_collection: 'deny', zdr: true }); expect(body.max_tokens).toBe(4096); expect(body.stream).toBe(false)
+    expect(body.response_format.json_schema.strict).toBe(true); expect(body.response_format.json_schema.schema.additionalProperties).toBe(false); expect(body.provider).toEqual({ require_parameters: true, data_collection: 'deny', zdr: true }); expect(body.max_tokens).toBe(16384); expect(body.stream).toBe(false)
     expect(result.proposal).toEqual(proposal()); expect(result.usage.cost).toBe(0.0001); expect(JSON.parse(before).projects).toEqual(JSON.parse(backup([p])).projects); expect(fetcher).toHaveBeenCalledTimes(2)
   })
   it('includes the planning anchor and answered questions without session credentials', async () => {
@@ -91,7 +91,42 @@ describe('OpenRouter session transport', () => {
     const p = newProject(); await expect(session.request({ project: p, step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false })).rejects.toThrow('validasi'); expect(p.summary.goal).toBeUndefined()
   })
   it('clears a revoked credential automatically', async () => { const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockResolvedValueOnce(response({}, 401)); const session = new OpenRouterSession(fetcher); await session.connect(key); await expect(session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: true })).rejects.toThrow('API key'); expect(session.getSnapshot().connected).toBe(false) })
-  it('reports token truncation rather than applying a partial response', async () => { const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockResolvedValueOnce(response({ choices: [{ finish_reason: 'length', message: { content: '{}' } }] })); const session = new OpenRouterSession(fetcher); await session.connect(key); await expect(session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false })).rejects.toThrow('terpotong') })
+  it.each(['', null, JSON.stringify(proposal())])('rejects truncated output (%s), preserves billed usage and never retries', async content => {
+    const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockResolvedValueOnce(response({
+      choices: [{ finish_reason: 'length', message: { content } }],
+      usage: { prompt_tokens: 300, completion_tokens: 16384, completion_tokens_details: { reasoning_tokens: 16000 }, cost: 0.003 },
+    }))
+    const session = new OpenRouterSession(fetcher); await session.connect(key)
+    const p = newProject(), before = structuredClone(p)
+    await expect(session.request({ project: p, step: 0, model: 'deepseek/deepseek-v4-flash-0731', instruction: '', zeroRetention: true })).rejects.toThrow('Naikkan Batas token respons')
+    expect(session.getSnapshot()).toMatchObject({ connected: true, busy: false, usage: { input: 300, output: 16384, reasoning: 16000, cost: 0.003 } })
+    expect(p).toEqual(before); expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+  it('uses the selected token budget on a manual retry after truncation', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(connectResponse())
+      .mockResolvedValueOnce(response({ choices: [{ finish_reason: 'length', message: { content: null } }] }))
+      .mockResolvedValueOnce(completion())
+    const session = new OpenRouterSession(fetcher); await session.connect(key)
+    const options = { project: newProject(), step: 0, model: 'deepseek/deepseek-v4-flash-0731', instruction: '', zeroRetention: true }
+    await expect(session.request({ ...options, maxTokens: 8192 })).rejects.toThrow('8.192')
+    expect(session.getSnapshot().busy).toBe(false); expect(fetcher).toHaveBeenCalledTimes(2)
+    expect((await session.request({ ...options, maxTokens: 32768 })).proposal).toEqual(proposal())
+    expect(JSON.parse(fetcher.mock.calls[1][1].body).max_tokens).toBe(8192)
+    const retryBody = JSON.parse(fetcher.mock.calls[2][1].body)
+    expect(retryBody.max_tokens).toBe(32768); expect(retryBody.provider).toEqual({ require_parameters: true, data_collection: 'deny', zdr: true })
+    expect(session.getSnapshot().busy).toBe(false); expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+  it('suggests smaller requests when the maximum token budget is exhausted', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockResolvedValueOnce(response({ choices: [{ finish_reason: 'length', message: { content: '{}' } }] }))
+    const session = new OpenRouterSession(fetcher); await session.connect(key)
+    await expect(session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false, maxTokens: 32768 })).rejects.toThrow('Minta perubahan yang lebih kecil atau pilih model lain')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+  it.each([0, -1, 8192.5, 65536, NaN])('rejects invalid token budget %s before sending project data', async maxTokens => {
+    const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()), session = new OpenRouterSession(fetcher); await session.connect(key)
+    await expect(session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false, maxTokens })).rejects.toThrow('Batas token tidak valid')
+    expect(fetcher).toHaveBeenCalledTimes(1); expect(session.getSnapshot().busy).toBe(false)
+  })
   it('rejects arbitrary model URLs and unauthenticated requests', async () => { const fetcher = vi.fn().mockResolvedValue(connectResponse()); const session = new OpenRouterSession(fetcher); const args = { project: newProject(), step: 0, model: 'https://evil.example', instruction: '', zeroRetention: false }; await expect(session.request(args)).rejects.toThrow('Hubungkan'); await session.connect(key); await expect(session.request(args)).rejects.toThrow('ID model'); expect(fetcher).toHaveBeenCalledTimes(1) })
   it('disconnect aborts active requests and clears the session', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))))
@@ -104,6 +139,6 @@ describe('OpenRouter session transport', () => {
   })
   it('times out and never retries automatically', async () => {
     vi.useFakeTimers(); const fetcher = vi.fn().mockResolvedValueOnce(connectResponse()).mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))))
-    const session = new OpenRouterSession(fetcher); await session.connect(key); const pending = session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false }); const assertion = expect(pending).rejects.toThrow('batas waktu'); await vi.advanceTimersByTimeAsync(90000); await assertion; expect(fetcher).toHaveBeenCalledTimes(2)
+    const session = new OpenRouterSession(fetcher); await session.connect(key); const pending = session.request({ project: newProject(), step: 0, model: 'google/gemini-2.5-flash-lite', instruction: '', zeroRetention: false }); const assertion = expect(pending).rejects.toThrow('batas waktu'); await vi.advanceTimersByTimeAsync(180000); await assertion; expect(fetcher).toHaveBeenCalledTimes(2)
   })
 })

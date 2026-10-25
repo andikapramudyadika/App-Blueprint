@@ -2,6 +2,13 @@
 
 Tanggal: **25 Oktober 2026 (Asia/Makassar)**.
 
+## Perbaikan batas token OpenRouter
+
+- Batas awal keluaran dinaikkan dari 4.096 menjadi 16.384 token, dengan pilihan 4.096 / 8.192 / 16.384 / 32.768 pada pengaturan dan waktu tunggu 180 detik. Prompt meminta usulan ringkas.
+- Pengujian otomatis: **69/69 lulus**. Regresi mencakup keluaran kosong/null/JSON lengkap dengan `finish_reason: length`, pencatatan penggunaan dan biaya pada respons terpotong, proyek tidak berubah, penolakan batas token tidak valid, percobaan ulang manual memakai batas baru, dan tidak ada percobaan ulang otomatis.
+- `pnpm build` berhasil, termasuk pemeriksaan TypeScript dan pembuatan service worker. Peringatan anotasi komentar Zod tetap berasal dari dependensi.
+- Panggilan model berbayar tidak dijalankan; respons API dalam pengujian memakai transport tiruan. Verifikasi lokal selesai sebelum penerbitan; hasil penerbitan GitHub Pages tersedia pada workflow `Deploy GitHub Pages` di tab Actions.
+
 ## Pemeriksaan otomatis
 
 - Instalasi dengan `pnpm 11.25.0 install --frozen-lockfile`: berhasil setelah menyesuaikan `allowBuilds` untuk esbuild dengan konfigurasi pnpm 11.

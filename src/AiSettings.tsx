@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { ExternalLink, KeyRound, Link2Off, LoaderCircle, ShieldCheck } from 'lucide-react'
-import { aiModels, OpenRouterSession } from './openrouter'
+import { aiModels, aiTokenLimits, OpenRouterSession } from './openrouter'
 
-export type AiPreferences = { model: string; zeroRetention: boolean }
+export type AiPreferences = { model: string; zeroRetention: boolean; maxTokens: number }
 export function AiSettings({ session, preferences, setPreferences }: { session: OpenRouterSession; preferences: AiPreferences; setPreferences: (value: AiPreferences) => void }) {
   const status = useSyncExternalStore(session.subscribe, session.getSnapshot)
   const [key, setKey] = useState(''), [error, setError] = useState(''), [connecting, setConnecting] = useState(false)
@@ -22,9 +22,10 @@ export function AiSettings({ session, preferences, setPreferences }: { session: 
     {error && <div className="error-box" role="alert">{error}</div>}
     <div className="field"><label htmlFor="ai-model">Model AI</label><select id="ai-model" value={aiModels.some(m => m.id === preferences.model) ? preferences.model : 'custom'} onChange={e => setPreferences({ ...preferences, model: e.target.value === 'custom' ? '' : e.target.value })}>{aiModels.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}<option value="custom">Model lain yang mendukung Structured Outputs</option></select></div>
     {!aiModels.some(m => m.id === preferences.model) && <div className="field"><label htmlFor="ai-custom-model">ID model OpenRouter</label><input id="ai-custom-model" value={preferences.model} onChange={e => setPreferences({ ...preferences, model: e.target.value })} placeholder="provider/nama-model" maxLength={150} /></div>}
+    <div className="field"><label htmlFor="ai-token-limit">Batas token respons</label><select id="ai-token-limit" value={preferences.maxTokens} onChange={e => setPreferences({ ...preferences, maxTokens: Number(e.target.value) })}>{aiTokenLimits.map(limit => <option key={limit} value={limit}>{limit.toLocaleString('id-ID')} token</option>)}</select><small>Batas ini mencakup jawaban dan penalaran AI. Naikkan jika respons terpotong. Batas lebih besar dapat menambah biaya dan waktu tunggu; tidak ada percobaan ulang otomatis.</small></div>
     <label className="check-label"><input type="checkbox" checked={preferences.zeroRetention} onChange={e => setPreferences({ ...preferences, zeroRetention: e.target.checked })} />Hanya gunakan provider dengan Zero Data Retention</label>
-    <small className="muted">Provider yang menggunakan data untuk pelatihan dikecualikan. Opsi Zero Data Retention dapat mengurangi pilihan provider dan membuat model tertentu tidak tersedia. Maksimal 4.096 token respons per permintaan; tidak ada percobaan ulang otomatis.</small>
+    <small className="muted">Provider yang menggunakan data untuk pelatihan dikecualikan. Opsi Zero Data Retention dapat mengurangi pilihan provider dan membuat model tertentu tidak tersedia.</small>
     <div className="row-gap wrap"><a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">Buat key & tetapkan batas belanja <ExternalLink size={13} /></a><a href="https://openrouter.ai/docs/guides/privacy/provider-logging" target="_blank" rel="noopener noreferrer">Kebijakan data provider <ExternalLink size={13} /></a></div>
-    {status.usage && <small className="muted">Permintaan terakhir: {status.usage.input.toLocaleString('id-ID')} token masuk · {status.usage.output.toLocaleString('id-ID')} token keluar{status.usage.cost !== null ? ` · US$${status.usage.cost.toFixed(6)}` : ' · biaya tidak dilaporkan provider'}</small>}
+    {status.usage && <small className="muted">Permintaan terakhir: {status.usage.input.toLocaleString('id-ID')} token masuk · {status.usage.output.toLocaleString('id-ID')} token keluar{status.usage.reasoning > 0 ? ` (termasuk ${status.usage.reasoning.toLocaleString('id-ID')} token penalaran)` : ''}{status.usage.cost !== null ? ` · US$${status.usage.cost.toFixed(6)}` : ' · biaya tidak dilaporkan provider'}</small>}
   </section>
 }

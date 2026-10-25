@@ -17,7 +17,7 @@ import './guided.css'
 import { GuidedWizard } from './GuidedWizard'
 import { AiSettings } from './AiSettings'
 import type { AiPreferences } from './AiSettings'
-import { aiModels, OpenRouterSession } from './openrouter'
+import { aiModels, defaultAiTokenLimit, OpenRouterSession } from './openrouter'
 import { ensureGuide } from './guided'
 import { guideSteps } from './guided-schema'
 
@@ -30,7 +30,7 @@ export default function App() {
   const { project, current, update, load, flush, saveStatus } = useProject()
   const [view, setView] = useState<'guided' | 'advanced'>('guided')
   const [aiSession] = useState(() => new OpenRouterSession())
-  const [aiPreferences, setAiPreferences] = useState<AiPreferences>({ model: aiModels[0].id, zeroRetention: true })
+  const [aiPreferences, setAiPreferences] = useState<AiPreferences>({ model: aiModels[0].id, zeroRetention: true, maxTokens: defaultAiTokenLimit })
   const [projects, setProjects] = useState<Project[]>([]), [loading, setLoading] = useState(true)
   const [section, setSection] = useState<SectionKey>('summary'), [search, setSearch] = useState(''), [filter, setFilter] = useState('Semua status'), [sort, setSort] = useState('updated')
   const [dialog, setDialog] = useState<Dialog>(null), [confirmation, setConfirmation] = useState<Confirm | null>(null), [toast, setToast] = useState('')
