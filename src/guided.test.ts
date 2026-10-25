@@ -26,6 +26,7 @@ describe('guided project data and safety', () => {
     const p = newProject(); for (const field of ['apiKey', '__proto__', 'constructor', 'sectionStatus']) expect(() => setTarget(p, 'summary', field, 'bad')).toThrow()
     const invalid = proposal(); invalid.changes[0].field = '__proto__'; expect(() => validateProposal(invalid)).toThrow()
     expect(() => validateProposal({ ...proposal(), apiKey: key })).toThrow()
+    expect(() => validateProposal({ ...proposal(), questions: [{ question: 'Nama?', reason: '', options: ['x'.repeat(201)], target: 'summary', field: 'name' }] })).toThrow()
   })
   it('pins an explicit anchor and does not overwrite it when AI is applied', () => {
     const p = newProject(); p.summary.goal = 'Awal'; p.summary.description = 'Ide awal'; saveAnchor(p); const anchor = structuredClone(p.guided!.anchor)

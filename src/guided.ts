@@ -52,7 +52,7 @@ export function validateProposal(raw: unknown): AiProposal {
     if (!isAllowedField(change.target, change.field) || seen.has(key) || change.field === 'name' && change.value.length > 200) throw new Error('Field usulan tidak valid atau berulang.')
     seen.add(key)
   }
-  for (const question of proposal.questions) if (!isAllowedField(question.target, question.field)) throw new Error('Tujuan pertanyaan AI tidak valid.')
+  for (const question of proposal.questions) if (!isAllowedField(question.target, question.field) || question.field === 'name' && question.options.some(option => option.length > 200)) throw new Error('Tujuan atau pilihan jawaban pertanyaan AI tidak valid.')
   for (const item of proposal.additions) {
     if (!item.fields.some(f => f.field === 'name' && f.value.trim())) throw new Error('Item AI harus mempunyai nama.')
     const fields = new Set<string>()
